@@ -53,12 +53,21 @@ LocalLLM_Lab/
   # 使用 WinGet 安装（推荐）
   winget install Kitware.CMake
   
+  # 安装后刷新 PATH（重要！）
+  .\refresh_path.ps1
+  # 或重新启动 PowerShell
+  
   # 或使用 Chocolatey
   choco install cmake
   
   # 或从官网下载
   # https://cmake.org/download/
   ```
+  
+  **⚠️ 注意**: WinGet 安装 CMake 后，当前 PowerShell 会话可能无法立即识别 `cmake` 命令。解决方法：
+  - 运行 `.\refresh_path.ps1` 刷新 PATH
+  - 或重新启动 PowerShell
+  - 或直接运行 `.\build_llama.ps1`（脚本会自动查找 CMake）
 
 - **Visual Studio 2022** (Community 版本免费): 提供 C++ 编译器
   - 下载: https://visualstudio.microsoft.com/downloads/
@@ -67,17 +76,26 @@ LocalLLM_Lab/
 
 ### 2. 编译 llama.cpp
 
-运行编译脚本（会自动检测工具）：
+**如果刚安装了 CMake，先刷新 PATH：**
+
+```powershell
+.\refresh_path.ps1
+```
+
+**然后运行编译脚本：**
 
 ```powershell
 .\build_llama.ps1
 ```
 
 脚本会自动：
-- 检查 Git、CMake 和 Visual Studio
+- 刷新 PATH 环境变量
+- 检查 Git、CMake 和 Visual Studio（自动查找常见安装位置）
 - 克隆/更新 llama.cpp 仓库
 - 配置优化编译选项（AVX-512, AVX2）
 - 编译并复制可执行文件到 `build/` 目录
+
+**💡 提示**: 即使 CMake 不在 PATH 中，脚本也会自动查找并使用它。
 
 **手动编译（如果脚本失败）：**
 

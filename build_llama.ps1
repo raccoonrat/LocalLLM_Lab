@@ -17,32 +17,46 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 Write-Host "✅ Git 已安装" -ForegroundColor Green
 
+# 刷新 PATH（从注册表读取最新值）
+Write-Host "🔄 刷新 PATH 环境变量..." -ForegroundColor Gray
+$SystemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+$UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$env:Path = ($SystemPath, $UserPath, $env:Path) -join ';'
+
 # 检查 CMake（包括常见安装位置）
 $CmakePath = $null
 if (Get-Command cmake -ErrorAction SilentlyContinue) {
     $CmakePath = "cmake"
-    Write-Host "✅ CMake 已安装 (在 PATH 中)" -ForegroundColor Green
+    $cmakeVersion = & cmake --version | Select-Object -First 1
+    Write-Host "✅ CMake 已安装 (在 PATH 中): $cmakeVersion" -ForegroundColor Green
 } else {
+    Write-Host "⚠️  CMake 不在 PATH 中，尝试查找安装位置..." -ForegroundColor Yellow
+    
     # 检查常见安装位置
     $CommonCmakePaths = @(
         "${env:ProgramFiles}\CMake\bin\cmake.exe",
-        "${env:ProgramFiles(x86)}\CMake\bin\cmake.exe",
-        "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Kitware.CMake_Microsoft.Winget.Source_*\cmake.exe"
+        "${env:ProgramFiles(x86)}\CMake\bin\cmake.exe"
     )
     
     foreach ($path in $CommonCmakePaths) {
         if (Test-Path $path) {
             $CmakePath = $path
+            $cmakeVersion = & $path --version | Select-Object -First 1
             Write-Host "✅ 找到 CMake: $path" -ForegroundColor Green
+            Write-Host "   版本: $cmakeVersion" -ForegroundColor Gray
             break
         }
     }
     
-    # 检查通配符路径（WinGet 安装）
-    $WinGetCmake = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter "cmake.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($WinGetCmake) {
-        $CmakePath = $WinGetCmake.FullName
-        Write-Host "✅ 找到 CMake: $CmakePath" -ForegroundColor Green
+    # 检查 WinGet 安装位置（通配符搜索）
+    if (-not $CmakePath) {
+        $WinGetCmake = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter "cmake.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($WinGetCmake) {
+            $CmakePath = $WinGetCmake.FullName
+            $cmakeVersion = & $CmakePath --version | Select-Object -First 1
+            Write-Host "✅ 找到 CMake (WinGet 安装): $CmakePath" -ForegroundColor Green
+            Write-Host "   版本: $cmakeVersion" -ForegroundColor Gray
+        }
     }
 }
 
@@ -55,7 +69,10 @@ if (-not $CmakePath) {
     Write-Host "      choco install cmake" -ForegroundColor White
     Write-Host "`n   3. 手动下载安装:" -ForegroundColor Cyan
     Write-Host "      https://cmake.org/download/" -ForegroundColor White
-    Write-Host "`n   安装后请重新运行此脚本" -ForegroundColor Yellow
+    Write-Host "`n💡 提示:" -ForegroundColor Yellow
+    Write-Host "   - 安装后运行 .\refresh_path.ps1 刷新 PATH" -ForegroundColor Gray
+    Write-Host "   - 或重新启动 PowerShell" -ForegroundColor Gray
+    Write-Host "   - 本脚本会自动查找常见安装位置" -ForegroundColor Gray
     exit 1
 }
 
