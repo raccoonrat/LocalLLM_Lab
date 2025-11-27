@@ -23,15 +23,63 @@ LocalLLM_Lab/
 
 ## 快速开始
 
-### 1. 编译 llama.cpp
+### 0. 安装依赖（首次运行）
 
-运行编译脚本（需要安装 Git 和 CMake）：
+**自动安装（推荐）：**
+
+运行依赖安装脚本，自动检测并安装所需工具：
+
+```powershell
+.\install_dependencies.ps1
+```
+
+**手动安装：**
+
+### 1. 安装依赖
+
+**必需工具：**
+
+- **Git**: 用于克隆 llama.cpp 仓库
+  ```powershell
+  # 使用 WinGet 安装（推荐）
+  winget install Git.Git
+  
+  # 或从官网下载
+  # https://git-scm.com/download/win
+  ```
+
+- **CMake**: 用于构建系统
+  ```powershell
+  # 使用 WinGet 安装（推荐）
+  winget install Kitware.CMake
+  
+  # 或使用 Chocolatey
+  choco install cmake
+  
+  # 或从官网下载
+  # https://cmake.org/download/
+  ```
+
+- **Visual Studio 2022** (Community 版本免费): 提供 C++ 编译器
+  - 下载: https://visualstudio.microsoft.com/downloads/
+  - 安装时选择: **Desktop development with C++** 工作负载
+  - 或安装 **Build Tools for Visual Studio 2022** (更轻量)
+
+### 2. 编译 llama.cpp
+
+运行编译脚本（会自动检测工具）：
 
 ```powershell
 .\build_llama.ps1
 ```
 
-或者手动编译：
+脚本会自动：
+- 检查 Git、CMake 和 Visual Studio
+- 克隆/更新 llama.cpp 仓库
+- 配置优化编译选项（AVX-512, AVX2）
+- 编译并复制可执行文件到 `build/` 目录
+
+**手动编译（如果脚本失败）：**
 
 ```powershell
 git clone https://github.com/ggerganov/llama.cpp
@@ -41,7 +89,7 @@ cmake --build build --config Release -j 8
 # 将生成的 llama-cli.exe 复制到 LocalLLM_Lab/build/
 ```
 
-### 2. 下载模型
+### 3. 下载模型
 
 运行模型下载脚本（默认使用 HF-Mirror 镜像加速）：
 
@@ -63,7 +111,7 @@ $env:HF_ENDPOINT = "https://huggingface.co"
 .\download_models.ps1
 ```
 
-### 3. 运行基准测试
+### 4. 运行基准测试
 
 ```powershell
 python run_benchmark.py

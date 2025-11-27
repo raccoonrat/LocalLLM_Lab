@@ -8,19 +8,86 @@ Write-Host "🔨 开始编译 llama.cpp..." -ForegroundColor Cyan
 # 检查前置条件
 Write-Host "`n📋 检查前置条件..." -ForegroundColor Yellow
 
+# 检查 Git
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "❌ 错误: 未找到 git 命令" -ForegroundColor Red
     Write-Host "   请先安装 Git: https://git-scm.com/download/win" -ForegroundColor Yellow
+    Write-Host "   或使用 winget: winget install Git.Git" -ForegroundColor Gray
+    exit 1
+}
+Write-Host "✅ Git 已安装" -ForegroundColor Green
+
+# 检查 CMake（包括常见安装位置）
+$CmakePath = $null
+if (Get-Command cmake -ErrorAction SilentlyContinue) {
+    $CmakePath = "cmake"
+    Write-Host "✅ CMake 已安装 (在 PATH 中)" -ForegroundColor Green
+} else {
+    # 检查常见安装位置
+    $CommonCmakePaths = @(
+        "${env:ProgramFiles}\CMake\bin\cmake.exe",
+        "${env:ProgramFiles(x86)}\CMake\bin\cmake.exe",
+        "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Kitware.CMake_Microsoft.Winget.Source_*\cmake.exe"
+    )
+    
+    foreach ($path in $CommonCmakePaths) {
+        if (Test-Path $path) {
+            $CmakePath = $path
+            Write-Host "✅ 找到 CMake: $path" -ForegroundColor Green
+            break
+        }
+    }
+    
+    # 检查通配符路径（WinGet 安装）
+    $WinGetCmake = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter "cmake.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($WinGetCmake) {
+        $CmakePath = $WinGetCmake.FullName
+        Write-Host "✅ 找到 CMake: $CmakePath" -ForegroundColor Green
+    }
+}
+
+if (-not $CmakePath) {
+    Write-Host "❌ 错误: 未找到 CMake" -ForegroundColor Red
+    Write-Host "`n📦 安装选项:" -ForegroundColor Yellow
+    Write-Host "   1. 使用 WinGet (推荐):" -ForegroundColor Cyan
+    Write-Host "      winget install Kitware.CMake" -ForegroundColor White
+    Write-Host "`n   2. 使用 Chocolatey:" -ForegroundColor Cyan
+    Write-Host "      choco install cmake" -ForegroundColor White
+    Write-Host "`n   3. 手动下载安装:" -ForegroundColor Cyan
+    Write-Host "      https://cmake.org/download/" -ForegroundColor White
+    Write-Host "`n   安装后请重新运行此脚本" -ForegroundColor Yellow
     exit 1
 }
 
-if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ 错误: 未找到 cmake 命令" -ForegroundColor Red
-    Write-Host "   请先安装 CMake: https://cmake.org/download/" -ForegroundColor Yellow
-    exit 1
+# 检查 Visual Studio 或 Build Tools
+$HasVisualStudio = $false
+$VSPath = @(
+    "${env:ProgramFiles}\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat",
+    "${env:ProgramFiles}\Microsoft Visual Studio\2022\Professional\Common7\Tools\VsDevCmd.bat",
+    "${env:ProgramFiles}\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat",
+    "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat",
+    "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Professional\Common7\Tools\VsDevCmd.bat"
+)
+
+foreach ($vs in $VSPath) {
+    if (Test-Path $vs) {
+        $HasVisualStudio = $true
+        Write-Host "✅ 找到 Visual Studio" -ForegroundColor Green
+        break
+    }
 }
 
-Write-Host "✅ Git 和 CMake 已安装" -ForegroundColor Green
+if (-not $HasVisualStudio) {
+    Write-Host "⚠️  警告: 未找到 Visual Studio" -ForegroundColor Yellow
+    Write-Host "   建议安装 Visual Studio 2022 Community (免费)" -ForegroundColor Gray
+    Write-Host "   下载: https://visualstudio.microsoft.com/downloads/" -ForegroundColor Gray
+    Write-Host "   需要安装: Desktop development with C++" -ForegroundColor Gray
+    Write-Host "   继续编译可能会失败..." -ForegroundColor Yellow
+    $Continue = Read-Host "是否继续? (y/N)"
+    if ($Continue -ne "y" -and $Continue -ne "Y") {
+        exit 1
+    }
+}
 
 # 项目根目录
 $ProjectRoot = $PSScriptRoot
@@ -57,7 +124,7 @@ if (Test-Path $BuildDir) {
 
 # CMake 配置
 Write-Host "`n🔧 运行 CMake 配置..." -ForegroundColor Yellow
-cmake -B build `
+& $CmakePath -B build `
     -DGGML_AVX512=ON `
     -DGGML_AVX2=ON `
     -DGGML_F16C=ON `
@@ -65,13 +132,14 @@ cmake -B build `
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ CMake 配置失败" -ForegroundColor Red
+    Write-Host "   提示: 确保已安装 Visual Studio 或 Build Tools" -ForegroundColor Yellow
     Pop-Location
     exit 1
 }
 
 # 步骤 3: 编译
 Write-Host "`n🔨 开始编译 (这可能需要几分钟)..." -ForegroundColor Yellow
-cmake --build build --config Release -j 8
+& $CmakePath --build build --config Release -j 8
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ 编译失败" -ForegroundColor Red
