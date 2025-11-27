@@ -1,19 +1,49 @@
-CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-_deps
-CMakeUserPresets.json
+# LocalLLM_Lab - Git 忽略文件
 
-# CLion
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#cmake-build-*
+# 编译产物
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 模型文件（通常很大，不应提交到 Git）
+models/*.gguf
+models/*.bin
+models/*.safetensors
+
+# 日志文件
+logs/*.json
+logs/*.md
+logs/*.log
+
+# llama.cpp 源码（如果克隆到项目目录）
+llama.cpp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.bak
+*.cache
